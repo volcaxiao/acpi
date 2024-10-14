@@ -25,13 +25,8 @@ use core::fmt;
 impl fmt::Display for Mpam {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "MAPM: {:#x?}", self.header)?;
-        let mut i = 100;
         for node in self.nodes() {
             write!(f, "\n{:#x?}", node)?;
-            i -= 1;
-            if i == 0 {
-                break;
-            }
         }
         Ok(())
     }
@@ -43,28 +38,20 @@ impl Mpam {
         let pointer = unsafe { (self as *const Mpam).add(1) as *const u8 };
         let remaining_length = self.header.length as u32 - size_of::<Mpam>() as u32;
 
-        MscNodeIter {
-            pointer,
-            remaining_length,
-            _phantom: PhantomData
-        }
+        MscNodeIter { pointer, remaining_length, _phantom: PhantomData }
     }
 
     pub fn memory_bases(&self) -> impl Iterator<Item = u64> + '_ {
-        self.nodes().filter_map(|node| {
-            match node.if_type {
-                2 => Some(node.base_address),
-                _ => None,
-            }
+        self.nodes().filter_map(|node| match node.if_type {
+            2 => Some(node.base_address),
+            _ => None,
         })
     }
 
     pub fn cache_bases(&self) -> impl Iterator<Item = u64> + '_ {
-        self.nodes().filter_map(|node| {
-            match node.if_type {
-                1 => Some(node.base_address),
-                _ => None
-            }
+        self.nodes().filter_map(|node| match node.if_type {
+            1 => Some(node.base_address),
+            _ => None,
         })
     }
 }
@@ -72,7 +59,7 @@ impl Mpam {
 pub struct MscNodeIter<'a> {
     pointer: *const u8,
     remaining_length: u32,
-    _phantom: PhantomData<&'a ()>
+    _phantom: PhantomData<&'a ()>,
 }
 
 impl Iterator for MscNodeIter<'_> {
@@ -85,7 +72,7 @@ impl Iterator for MscNodeIter<'_> {
 
         let node = unsafe { &*(self.pointer as *const MscNode) };
         let node_length = node.length as u32;
-        
+
         self.pointer = unsafe { self.pointer.add(node_length as usize) };
         self.remaining_length -= node_length;
 
@@ -104,7 +91,7 @@ pub struct MscNode {
 
     pub overflow_interrupt: u32,
     pub overflow_interrupt_flags: u32,
-    
+
     pub error_interrupt: u32,
     pub error_interrupt_flags: u32,
 
